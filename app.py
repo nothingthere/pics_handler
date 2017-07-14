@@ -50,12 +50,14 @@ class Application:
         self.dir_frame.grid(row=0, column=1, sticky='ne')
 
         self.cars_yesterday = tk.StringVar()             # 昨天车辆数量
+        self.cars_yesterday_edited = tk.StringVar()        # 昨天已经编辑好车辆数
         self.pics_per_car = 3               # 每辆车照片数量
         self.inplace = tk.BooleanVar()        # 是否修改当前文件夹
         self._dir = tk.StringVar()            # 照片所在文件夹
         self._dir_suffix = '.NEW'                # 新建文件夹后缀
 
         self.cars_yesterday.set('0')
+        self.cars_yesterday_edited.set('')
         self.inplace.set(False)
 
         #
@@ -64,33 +66,57 @@ class Application:
 
         # 昨天车辆数量
         tk.Label(self.setting_frame, cnf={
-            'text': '昨天车辆数：',
+            'text': '昨天未编辑车辆数：',
             'font': self.font,
         }).grid(row=0, column=0, sticky='w', padx=5, pady=5)
 
-        tk.Entry(self.setting_frame, cnf={
+        self.cars_yesterday_entry = tk.Entry(self.setting_frame, cnf={
             'textvariable': self.cars_yesterday,
             'width': '5',
             'font': self.font,
-        }).grid(row=0, column=1, sticky='e', padx=10)
+        })
+        self.cars_yesterday_entry.grid(row=0, column=1, sticky='e', padx=10)
+
+        # 输入后按下回车键，如果数字合法，则可编辑“昨天已编辑好车辆数”
+        self.cars_yesterday_entry.bind(
+            '<Return>', self.enable_cars_yesterday_cars_yesterday_edited_entry)
+        # 跳过昨天车辆数
+        tk.Label(self.setting_frame, cnf={
+            'text': '昨天已编辑好车辆数：',
+            'font': self.font,
+        }).grid(row=1, column=0, sticky='w', padx=5, pady=5)
+
+        self.cars_yesterday_edited_entry = ttk.Entry(self.setting_frame,
+                                                     textvariable=self.cars_yesterday_edited,
+                                                     width=5,
+                                                     font=self.font,
+                                                     state=['disabled']
+                                                     )
+        self.cars_yesterday_edited_entry.grid(
+            row=1, column=1, sticky='e', padx=10)
+
+        self.cars_yesterday_edited_entry.bind(
+            '<Return>', self.focus_inplace_checkbutton)
 
         # 是否在当前文件夹中修改
         tk.Label(self.setting_frame, cnf={
             'text': '是否在当前文件夹中修改：',
             'font': self.font,
-        }).grid(row=1, column=0, sticky='w', padx=5, pady=5)
+        }).grid(row=2, column=0, sticky='w', padx=5, pady=5)
 
-        tk.Checkbutton(self.setting_frame, cnf={
+        self.inplace_checkbutton = tk.Checkbutton(self.setting_frame, cnf={
             'variable': self.inplace,
             'onvalue': True,
             'offvalue': False,
-        }).grid(row=1, column=1, sticky='e', pady=5, padx=10)
+        })
+        self.inplace_checkbutton.grid(
+            row=2, column=1, sticky='e', pady=5, padx=10)
 
         #
         # about_frame
         #
 
-        for i, text in enumerate(['Version: 0.2',
+        for i, text in enumerate(['Version: 0.2.1',
                                   'Author: claudio',
                                   'Contact: 3261958605@qq.com']):
             tk.Label(self.about_frame, cnf={
@@ -136,13 +162,39 @@ class Application:
                                            )
         self.progressbar.grid(row=3, column=0, columnspan=2, pady=10)
 
+    def enable_cars_yesterday_cars_yesterday_edited_entry(self, _event):
+        '''
+        如果对“昨天车辆数输入合法”，按下回车则聚焦到输入“昨天已经编辑好车辆数”的输入文本框，
+        否则弹出警告。
+        '''
+        cars_yesterday = self.check_num_input_entry(self.cars_yesterday.get())
+        if isinstance(cars_yesterday, str):
+            self.cars_yesterday_edited.set('')
+            self.cars_yesterday_edited_entry.state(['disabled'])
+            self.show_error(cars_yesterday)
+        else:
+            self.cars_yesterday_edited_entry.state(['!disabled'])
+            self.cars_yesterday_edited_entry.focus()
+
+    def focus_inplace_checkbutton(self, _event):
+        '''
+        如果对“昨天已经编辑好车辆数”输入合法，
+        按下回车则聚焦到选择“是否在当前文件夹中修改”的选择框
+        '''
+        cars_yesterday_edited = self.check_num_input_entry(
+            self.cars_yesterday_edited.get())
+        if isinstance(cars_yesterday_edited, str):
+            self.show_error(cars_yesterday_edited)
+        else:
+            self.inplace_checkbutton.focus()
+
     def show_error(self, msg):
         messagebox.showerror(title='错误', message=msg)
         self.progress.set(0)
 
-    def increase_progress(self):
+    def increase_progress(self, num=1):
         value = self.progress.get()
-        self.progress.set(value + 1)
+        self.progress.set(value + num)
 
     def select_dir(self):
         dir_name = filedialog.askdirectory()
@@ -236,7 +288,8 @@ class Application:
 
         return normal_paths
 
-    def _rename(self, image_file_paths, new_folder_path, days=0, inplace=False):
+    def _rename(self, image_file_paths, new_folder_path, days=0,
+                inplace=False, cars_yesterday_edited=0):
         '''
         重命名操作函数。
 
@@ -253,8 +306,11 @@ class Application:
 
         @inplace：是否修改当前文件夹
 
+        @cars_yesterday_edited：昨天已编辑好车辆数
+
         '''
-        cars, index = 1, 1
+        index = 1
+        cars = cars_yesterday_edited + 1
         new_path = ''
         today = datetime.date.today()
         day_delta = datetime.timedelta(days=days)
@@ -270,8 +326,6 @@ class Application:
 
         for image_file_path in image_file_paths:
             # 获取原来文件名后缀
-            self.increase_progress()
-
             extension = os.path.splitext(image_file_path)[1]
             suffix = '{:03}-{}{}'.format(cars, index, extension)
             new_path = os.path.join(new_folder_path,  prefix + suffix)
@@ -293,7 +347,22 @@ class Application:
                 # print(image_file_path, ' --> ', new_path)
                 shutil.copy2(image_file_path, new_path)
 
+        self.increase_progress(len(image_file_paths))
         return duplicated_file_paths
+
+    def check_num_input_entry(self, str_var):
+        '''
+        检查Entry中输入是否合法，
+        如果合法，返回对应数值，
+        否则返回小写字符串。
+        '''
+        num = str_var.strip()
+        try:
+            if num == '':
+                return 0
+            return int(num)
+        except ValueError:
+            return '请使用纯数字设置车辆数'
 
     def rename(self):
         '''
@@ -307,6 +376,7 @@ class Application:
         #
 
         cars_yesterday = self.cars_yesterday.get()
+        cars_yesterday_edited = self.cars_yesterday_edited.get()
         inplace = self.inplace.get()
         dirname = self._dir.get()
         new_dirname = dirname   # 重命名后图片放置文件夹
@@ -315,15 +385,24 @@ class Application:
         #
         # 检查设置是否合法
         #
-        try:
-            cars_yesterday = cars_yesterday.strip()
-            if not cars_yesterday:
-                cars_yesterday = 0
-            else:
-                cars_yesterday = int(cars_yesterday)
-        except ValueError:
-            self.show_error("请使用纯数字设置车辆数")
+        cars_yesterday = self.check_num_input_entry(cars_yesterday)
+        if isinstance(cars_yesterday, str):
+            self.show_error(cars_yesterday)
             return
+        cars_yesterday_edited = self.check_num_input_entry(
+            cars_yesterday_edited)
+        if isinstance(cars_yesterday_edited, str):
+            self.show_error(cars_yesterday_edited)
+            return
+        # try:
+        #     cars_yesterday = cars_yesterday.strip()
+        #     if not cars_yesterday:
+        #         cars_yesterday = 0
+        #     else:
+        #         cars_yesterday = int(cars_yesterday)
+        # except ValueError:
+        #     self.show_error("请使用纯数字设置车辆数")
+        #     return
 
         image_file_paths = self.validate_dirpath(dirname)
         if isinstance(image_file_paths, str):
@@ -373,11 +452,12 @@ class Application:
 
         # print('''
         # 昨天车辆数：{}
+        # 昨天已经编辑好车辆数：{}
         # 是否在当前文件夹修改：{}
         # 选择的图片文件夹：{}
         # 重命名后图片放置文件夹：{}
         # 图片个数：{}
-        # '''.format(cars_yesterday, inplace, dirname, new_dirname, image_file_num))
+        # '''.format(cars_yesterday, cars_yesterday_edited, inplace, dirname, new_dirname, image_file_num))
 
         #
         # 执行重命名
@@ -385,7 +465,7 @@ class Application:
 
         duplicate_paths = []
         duplicate_paths.extend(self._rename(image_file_paths[:cars_yesterday * self.pics_per_car],
-                                            new_dirname, days=-1, inplace=inplace))
+                                            new_dirname, days=-1, inplace=inplace, cars_yesterday_edited=cars_yesterday_edited))
         duplicate_paths.extend(self._rename(image_file_paths[cars_yesterday * self.pics_per_car:],
                                             new_dirname, days=0, inplace=inplace))
 
