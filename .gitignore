@@ -1,6 +1,5 @@
 a.out
 __pycache__/**
 build/**
-dist/**
 *.spec
 test_pics*/**
