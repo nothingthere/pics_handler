@@ -4,7 +4,7 @@
 #+TITLE: 鲜活照片批量处理
 
 #+BEGIN_QUOTE
-Version: 0.2.1
+Version: 0.3
 #+END_QUOTE
 
 * 功能
