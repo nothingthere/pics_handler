@@ -5,5 +5,8 @@ REM Code:
 pyinstaller --noconfirm ^
             --noconsole ^
             --clean ^
+            --add-data="sdgs.gif;." ^
+            --add-data="sdgs.ico;." ^
+            -i baicai.ico ^
             app.py
 
