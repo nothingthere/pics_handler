@@ -5,8 +5,11 @@ REM Code:
 pyinstaller --noconfirm ^
             --noconsole ^
             --clean ^
-            --add-data="sdgs.gif;." ^
+            --add-data="sdgs.png;." ^
             --add-data="sdgs.ico;." ^
-            -i baicai.ico ^
-            app.py
+            --add-data="folder.png;." ^
+            --add-data="excel.png;." ^
+            -i banana.ico ^
+            pics_handler.py
+
 

@@ -1,6 +1,13 @@
 a.out
 __pycache__/**
 build/**
+dist/**
 *.spec
 test_pics*/**
 **/*.tar
+**/*.xls
+**/*.xlsx
+新建文件夹/**
+
+
+
