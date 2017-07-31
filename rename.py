@@ -14,10 +14,10 @@ import public
 import shutil
 
 cpus = os.cpu_count()
-if cpus:
-    MAX_WORKER = 5 * cpus
-else:
-    MAX_WORKER = 5
+if not cpus:
+    cpus = 1
+
+MAX_WORKERS = 5 * cpus
 
 
 def move_files(paths_from, paths_to, func=shutil.copy2):
@@ -26,30 +26,15 @@ def move_files(paths_from, paths_to, func=shutil.copy2):
     默认为复制文件，及使用shutil.copy2
     可使用shutil.move实现重命名
     '''
-    # def foo(x, y):
-    #     func(x, y)
-    #     print(x, ' --> ', y)
+    def foo(x, y):
+        func(x, y)
+        print(os.path.basename(x), ' --> ', os.path.basename(y))
 
     # 传递max_workers参数是为了兼容python3.4，以兼容XP
-    with cf.ThreadPoolExecutor(max_workers=MAX_WORKER) as e:
+    with cf.ThreadPoolExecutor(max_workers=MAX_WORKERS) as e:
         e.map(func, paths_from, paths_to)
 
 
-def remove_files(paths):
-    # def foo(path):
-    #     os.remove(path)
-    #     print('删除：', path)
-    with cf.ThreadPoolExecutor(max_workers=MAX_WORKER) as e:
-        e.map(os.remove, paths)
-
-
-def filepaths_in_folder(folder):
-    filenames_in_folder = os.listdir(path=folder)
-    filepaths_in_folder = []
-    for filename in filenames_in_folder:
-        filepaths_in_folder.append(os.path.join(folder, filename))
-
-    return filepaths_in_folder
 
 
 def generate_path_pairs(file2datetimes, dst_folder, edited=0, inplace=True):
@@ -67,9 +52,11 @@ def generate_path_pairs(file2datetimes, dst_folder, edited=0, inplace=True):
     date_current = public.date_current()
     car_index_today = 0
     car_index_yesterday = edited
-    car_index = 'X'
+    fake_index = 999              # 如果是“将来”的图片
+    car_index = 0
+
     pic_index = 1
-    filepaths_in_dst_folder = filepaths_in_folder(dst_folder)
+    filepaths_in_dst_folder = public.filepaths_in_folder(dst_folder)
 
     for i, pair in enumerate(file2datetimes):
         path = pair[0]
@@ -91,13 +78,13 @@ def generate_path_pairs(file2datetimes, dst_folder, edited=0, inplace=True):
                 car_index_today += 1
                 car_index = car_index_today
             else:
-                car_index = 'X'
+                fake_index += 1
+                car_index = fake_index
 
         # 计算照片索引
         pic_index = (i % pics_per_car) + 1
         # 构建路径对
         # print(year, month, day, car_index, pic_index)
-
         pic_name = '{}{:02}{:02}{:03}-{}'.format(
             year, month, day, car_index, pic_index)
 
@@ -130,12 +117,15 @@ def main(file2datetimes, dst_folder, edited=0, inplace=True):
     3. 如果新路径已经存在于目标文件夹中：
        生产序列[新路径1,新路径2...]：duplicated_paths
 
-    4. 将duplicated_paths_中的“新路径”重命名为“新路径.back”
-    5. 复制/重命名old_paths中的路径待new_paths对应位置的新路径：旧路径 -> 新路径
-    6. 删除duplicated_paths中的所有“新路径.back”文件
+    4. 如果duplicated_paths中有路径，则表明为当前文件夹中修改，
+       1. 先将所有所有旧路径重命名为"新路径.new"即old_path1 -> new_path1.new
+       2. 再将所有“新路径.new” 重命名为“新路径”，即new_path1.new -> new_path
+          按照shutil.move的机制，会覆盖之前duplicated_paths中的“新路径”
+       3. 如果是添加照片组，则文件夹中的照片会变得“干净”。如果删减照片组，也会
+         变得“干净”。
 
-
-    ？？？好像没有必要管理重复名称的照片！！！！
+    5. 如果duplicated_paths中没有路径，则有可能是当前文件夹中修改，也有可能不是，
+       此时使用inplace参数判断是否在当前文件夹中修改。
     '''
 
     # 1、2和3
@@ -143,29 +133,26 @@ def main(file2datetimes, dst_folder, edited=0, inplace=True):
         file2datetimes, dst_folder, edited, inplace=inplace)
     old_paths = paths[0]
     new_paths = paths[1]
-    # duplicated_paths = paths[2]
-    # duplicated_paths_back = []
-    # flag = '.BACK'
-    # for path in duplicated_paths:
-    #     duplicated_paths_back.append(path + flag)
+    duplicated_paths = paths[2]
+    flag = '.NEW'
 
     try:
-        # # 4
-        # print('重命名重复文件')
-        # move_files(duplicated_paths, duplicated_paths_back, shutil.copy2)
+        # 4
+        if len(duplicated_paths) > 0:
+            new_paths2 = []
+            for path in new_paths:
+                new_paths2.append(path + flag)
 
+            move_files(old_paths, new_paths2, shutil.move)
+            move_files(new_paths2, new_paths, shutil.move)
         # 5
-        # print('复制/重命名')
-        if inplace:
-            # print('\t重命名')
-            move_files(old_paths, new_paths, shutil.move)
         else:
-            # print('\t复制')
-            move_files(old_paths, new_paths, shutil.copy2)
-
-        # # 6
-        # print('删除重复文件')
-        # remove_files(duplicated_paths_back)
+            if inplace:
+                # print('\t重命名')
+                move_files(old_paths, new_paths, shutil.move)
+            else:
+                # print('\t复制')
+                move_files(old_paths, new_paths, shutil.copy2)
 
     except:
         return '''重命名图片失败，

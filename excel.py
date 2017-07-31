@@ -25,7 +25,7 @@ from openpyxl.styles import Alignment, Font, NamedStyle
 # 表格中的头信息
 HEADER = {
     'title': '收费站鲜活车登记表',
-    'company': '单位：长山收费站',
+    'company': '单位：XXX收费站',
     'headers': ['序号', '日期', '时间', '车道', '车牌', '车型',
                 '农产品种类', '操作人', '照片索引', '备注']
 }
@@ -75,8 +75,9 @@ def _load_book(filename):
         return book
 
 
-def get_sheet(book):
-    name = '{}月'.format(datetime.date.today().month)
+def get_sheet(book, month):
+    name = '{}月'.format(month)
+    # print('表单名称：', name)
 
     if name in book.get_sheet_names():
         return book.get_sheet_by_name(name)
@@ -84,8 +85,26 @@ def get_sheet(book):
         return create_sheet(book)
 
 
+def get_sheets(book):
+    '为跨月操作，需获取2个表单'
+    sheets = []
+    date_current = public.date_current()
+    month = date_current.month
+
+    # 前一个月的表单
+    if 1 == date_current.day and 1 != month:
+        sheets.append(get_sheet(book, month - 1))
+    else:
+        sheets.append(None)
+
+    # 当月表单
+    sheets.append(get_sheet(book, month))
+
+    return sheets
+
+
 def create_sheet(book):
-    name = '{}月'.format(datetime.date.today().month)
+    name = '{}月'.format(public.now().month)
 
     sheet = book.create_sheet(name)
 
@@ -175,15 +194,18 @@ def get_datetime(row):
                              minute=minute, second=second)
 
 
-def get_edited_and_row_start(excel_file,  guard_datetime):
+def get_edited_and_row_start(excel_file, guard_datetime):
     '''
     获取已编辑车辆数，和开始插入的行
     @excel_file：主要是sheet主要为了为operation.py提供接口
     @not_edited：昨天没处理的车辆数
     返回值：元组(昨天处理过的车辆数， 开始写入的行)
     '''
-    book = xls.load_workbook(excel_file, read_only=True)
-    sheet = get_sheet(book)
+    book = xls.load_workbook(excel_file)
+
+    # 确定是否操作前一个的表单
+    sheets = get_sheets(book)
+    sheet = sheets[0] or sheets[1]
     # 昨天出处理过的车辆数
     edited = 0
 
@@ -201,7 +223,6 @@ def get_edited_and_row_start(excel_file,  guard_datetime):
     #
 
     for r, row in enumerate(sheet.rows):
-        r += 1
         row_datetime = get_datetime(row)
         if not row_datetime:
             continue
@@ -214,7 +235,7 @@ def get_edited_and_row_start(excel_file,  guard_datetime):
         date_delta = date_current - row_date
         if 1 == date_delta.days:
             if 0 == row_of_yesterday_start:
-                row_of_yesterday_start = r
+                row_of_yesterday_start = r + 1
 
             if row_datetime < guard_datetime:
                 edited += 1
@@ -224,6 +245,7 @@ def get_edited_and_row_start(excel_file,  guard_datetime):
     # 如果没有昨天的行，有2种情况：
     # 1. 新建的的sheet
     # 2. 确实没有昨天的条目
+    # print('row_of_yesterday_start：', row_of_yesterday_start, '最后行号：', r + 2)
     if 0 == row_of_yesterday_start:
         if len(HEADER) == sheet.max_row:
             row_start = len(HEADER) + 1
@@ -247,7 +269,7 @@ def add_entry(sheet, datetime_, row, default_lane='7', pics_index=''):
 
     '''
 
-    index = row + len(HEADER)
+    index = row - len(HEADER)
     date = '{}.{:02}.{:02}'.format(
         datetime_.year, datetime_.month, datetime_.day)
     time_ = datetime.time(hour=datetime_.hour,
@@ -255,7 +277,7 @@ def add_entry(sheet, datetime_, row, default_lane='7', pics_index=''):
     # time_ = '{}:{}'.format(datetime_.hour, datetime_.minute)
     # second=datetime_.second)
     lane = default_lane
-    plate = ''
+    plate = '川'
     car_type = 1
     product = ''
     operator = ''
@@ -293,7 +315,8 @@ def add_entries(sheet, car_datetimes, row_start, default_lane='7', edited=0):
     date_current = public.date_current()
     index_yesterday = edited
     index_today = 0
-    index = 'X'
+    index_fake = 999
+    index = 0
 
     for datetime_ in car_datetimes:
         date_car = datetime.datetime(
@@ -307,7 +330,8 @@ def add_entries(sheet, car_datetimes, row_start, default_lane='7', edited=0):
             index_today += 1
             index = index_today
         else:
-            index = 'X'
+            index_fake += 1
+            index = index_fake
 
         pics_index = '{}{:02}{:02}{:03}.1-{:03}.3'.format(
             datetime_.year, datetime_.month, datetime_.day,
@@ -323,10 +347,32 @@ def add_entries(sheet, car_datetimes, row_start, default_lane='7', edited=0):
     clear_rows_from(sheet, row_start)
 
 
+def add_entries_for_sheets(sheets, car_datetimes, row_start, default_lane='7',
+                           edited=0, not_edited=0):
+    '''为当月和前一月表单中添加数据
+    参数与add_entries相同不过row_start为第一个表单中开始插入的行
+    '''
+    sheet1 = sheets[0]            # 前一月的表单
+    sheet2 = sheets[1]            # 当月表单
+
+    # 如需跨月操作
+    if sheet1:
+        car_datetimes1 = car_datetimes[0:not_edited]
+        car_datetimes2 = car_datetimes[not_edited:]
+        add_entries(sheet1, car_datetimes1, row_start,
+                    default_lane='7', edited=edited)
+        add_entries(sheet2, car_datetimes2, len(HEADER) + 1,
+                    default_lane='7', edited=0)
+    # 否则
+    else:
+        add_entries(sheet2, car_datetimes, row_start,
+                    default_lane='7', edited=edited)
+
+
 def clear_row(sheet, row):
     col_start = 1
     for i in range(len(HEADER['headers'])):
-        _ = sheet.cell(column=col_start + i + 1, row=row, value='')
+        _ = sheet.cell(column=col_start + i, row=row, value='')
 
 
 def clear_rows_from(sheet, row):
@@ -342,18 +388,25 @@ def clear_rows_from(sheet, row):
 # 此模块总函数
 #
 
-def main(excel_file, car_datetimes, row_start, default_lane='7', edited=0):
+def main(excel_file, car_datetimes, row_start, default_lane='7',
+         edited=0, not_edited=0):
     '''
     @excel_file：需操作的Excel文件
     @car_datetimes：datetime对象组成的序列
     @row_start：开始插入的行
     @default_lane：车道编号
+    @edited：昨天编辑好的车辆数
+    @not_edited：昨天没处理的车辆数
     '''
     try:
         book = xls.load_workbook(excel_file)
-        sheet = get_sheet(book)
-        add_entries(sheet, car_datetimes, row_start,
-                    default_lane=default_lane, edited=edited)
+        sheets = get_sheets(book)
+        add_entries_for_sheets(sheets,
+                               car_datetimes,
+                               row_start,
+                               default_lane=default_lane,
+                               edited=edited,
+                               not_edited=not_edited)
         book.save(excel_file)
     except:
         return '{}：操作Excel文件失败，请确保没有其他程序占用该文件'.format(excel_file)

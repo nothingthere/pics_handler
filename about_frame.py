@@ -17,7 +17,7 @@ class Frame(tk.Frame):
     def __init__(self, master=None):
         super(Frame, self).__init__(master)
 
-        self.infos = ['Version: 0.3.2',
+        self.infos = ['Version: 0.3.3',
                       'Author: claudio',
                       'Contact: 3261958605@qq.com']
         self.manual_url = r'https://github.com/nothingthere/pics_handler/blob/master/README.org'

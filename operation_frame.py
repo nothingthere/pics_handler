@@ -33,6 +33,14 @@ class Frame(tk.Frame):
         self.excel_file = tk.StringVar()
         self.progress_str = tk.StringVar()
 
+        # 测试用
+        # self.src_folder.set(
+        #     '/home/claudio/Desktop/Python/pics-handler/data_test/pics_new')
+        # self.dst_folder.set(
+        #     '/home/claudio/Desktop/Python/pics-handler/data_test/pics_new')
+        # self.excel_file.set(
+        #     '/home/claudio/Desktop/Python/pics-handler/data_test/2017年1月-2017年12月.xlsx')
+
         self.src_folder_widget = None
         self.src_folder_button_widget = None
         self.dst_folder_widget = None
@@ -204,8 +212,10 @@ class Frame(tk.Frame):
         if False is image_files:
             return False
 
+        src_folder = self.src_folder.get().strip()
         dst_folder = validate.dst_folder(
             self.dst_folder,
+            src_folder,
             self.dst_folder_widget)
         if False is dst_folder:
             return False
@@ -216,7 +226,6 @@ class Frame(tk.Frame):
         if False is excel_file:
             return False
 
-        src_folder = self.src_folder.get().strip()
         # print('edited: ', edited)
         # print('default_lane', default_lane)
         # print('src_folder中的图片数量为：', src_folder)
@@ -233,6 +242,7 @@ class Frame(tk.Frame):
     def run(self):
         infos = self.validate()
         if not infos:
+            # validate.show_error('验证失败，执行结束')
             return
 
         # print(infos)

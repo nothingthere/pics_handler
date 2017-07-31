@@ -22,7 +22,7 @@ root = tk.Tk()
 #
 root.title('山东高速集团四川产业运营公司鲜活车处理系统')
 root.geometry('+10+10')
-root.resizable(False, True)
+root.resizable(False, False)
 if os.path.exists(ico) and 'win' in sys.platform:
     root.wm_iconbitmap(ico)
 

@@ -12,6 +12,7 @@ import operation
 import os
 import os.path
 import public
+import shutil
 import tkinter.messagebox as messagebox
 
 
@@ -59,7 +60,7 @@ def default_lane(tk_str, focus):
 def src_folder(tk_str, focus):
     folder_path = tk_str.get().strip()
     image_files = []
-    image_file_extensions = ['.jpeg', '.jpg', '.png']
+
     pics_per_car = 3
 
     if '' == folder_path:
@@ -76,10 +77,10 @@ def src_folder(tk_str, focus):
                    focus)
         return False
 
-    for filename in os.listdir(path=folder_path):
-        extension = os.path.splitext(filename)[1]
-        if extension.lower() in image_file_extensions:
-            image_files.append(os.path.join(folder_path, filename))
+    for filepath in public.filepaths_in_folder(folder_path):
+        extension = os.path.splitext(filepath)[1]
+        if extension.lower() in public.IMAGE_FILE_EXTENSIONS:
+            image_files.append(filepath)
 
     if 0 == len(image_files):
         show_error('{}：无图片文件'.format(folder_path))
@@ -92,7 +93,15 @@ def src_folder(tk_str, focus):
     return image_files
 
 
-def dst_folder(tk_str, focus):
+def clear_folder(folder):
+    '清空文件夹中第一层的图片文件'
+    for filepath in public.filepaths_in_folder(folder):
+        extention = os.path.splitext(filepath)[1]
+        if extention.lower() in public.IMAGE_FILE_EXTENSIONS:
+            os.remove(filepath)
+
+
+def dst_folder(tk_str, src_folder, focus):
     folder_path = tk_str.get().strip()
 
     if '' == folder_path:
@@ -109,6 +118,22 @@ def dst_folder(tk_str, focus):
                    focus)
         return False
 
+    # 如果不在当前文件夹中修改，目标文件夹中有文件，先确定是否清空图片文件
+    # 不使用os.samefile：Windows中相同路径会判断失败？？？
+    if folder_path != src_folder and len(os.listdir(folder_path)) > 0:
+        empty_OK = messagebox.askyesno(
+            title='提示',
+            message='需先清空{}中的图片文件，是否继续？'.format(folder_path))
+        if not empty_OK:
+            return False
+
+        try:
+            clear_folder(folder_path)
+        except:
+            show_error('{}：可能被另一个程序占用，清空失败'.format(folder_path))
+            return False
+
+    # return False
     return folder_path
 
 

@@ -50,7 +50,7 @@ class Frame(tk.LabelFrame):
                  ).grid(row=2, column=0, sticky='w', padx=5, pady=20)
 
         self.default_lane_widget = tk.Spinbox(self,
-                                              from_=1, to=12,
+                                              from_=1, to=20,
                                               textvariable=self.default_lane,
                                               font=self.font,
                                               width=3,

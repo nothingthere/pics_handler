@@ -158,7 +158,7 @@ def main(default_lane=7, image_files={},
         update_progress(root, progress_str, '')
         return can_extract_ctime
 
-    # not_edited = get_not_edited(car_datetimes) #
+    not_edited = get_not_edited(car_datetimes)
     edited_and_row_start = excel.get_edited_and_row_start(excel_file,
                                                           car_datetimes[0])
     edited = edited_and_row_start[0]
@@ -171,12 +171,14 @@ def main(default_lane=7, image_files={},
     # inplace: {},
     # car_datetimes: {},
     # edited: {},
+    # not_edited: {},
     # row_start: {},
     # '''.format(inplace,
     #            car_datetimes,
-    #            edited, row_start))
+    #            edited, not_edited,
+    #            row_start))
     # return True
-    #
+
     # 照片重命名
     #
     update_progress(root, progress_str, '正在重命名图片....')
@@ -185,15 +187,16 @@ def main(default_lane=7, image_files={},
     if isinstance(result, str):
         update_progress(root, progress_str, '')
         return result
-    update_progress(root, progress_str, '')
 
+    # print('重命名照片结束')
     #
     # 操作excel文件
     #
     update_progress(root, progress_str, '正在写入Excel文件....')
 
     result = excel.main(excel_file, car_datetimes, row_start,
-                        default_lane=default_lane, edited=edited)
+                        default_lane=default_lane,
+                        edited=edited, not_edited=not_edited)
     if isinstance(result, str):
         update_progress(root, progress_str, '')
         return result
