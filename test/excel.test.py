@@ -32,7 +32,7 @@ for file in test_files:
 
 DATA = []
 for file in test_files:
-    DATA.append({'time': os.stat(file).st_ctime, 'lane': '7'})
+    DATA.append({'time': os.stat(file).st_ctime, 'lane': 7})
 print(DATA)
 
 NOW_STRING = excel._stat_time_to_string(time.time())

@@ -194,6 +194,26 @@ def get_datetime(row):
                              minute=minute, second=second)
 
 
+def is_normal_row(row):
+    '是否为正常车辆行'
+    headers = len(HEADER['headers'])  # 该有列数
+
+    if len(row) < headers:
+        return False
+
+    # 至少保证第一列（序号），和倒数第二列（图片编号）有内容，
+    value_index = (row[0]).value
+    value_date = (row[1]).value
+    value_time = (row[2]).value
+    value_pics_index = (row[headers - 2]).value
+
+    if not (value_index and value_date and value_time and value_pics_index):
+        # print(value_index, value_pics_index)
+        return False
+
+    return True
+
+
 def get_edited_and_row_start(excel_file, guard_datetime):
     '''
     获取已编辑车辆数，和开始插入的行
@@ -223,6 +243,19 @@ def get_edited_and_row_start(excel_file, guard_datetime):
     #
 
     for r, row in enumerate(sheet.rows):
+        # 跳过头信息部分
+        if r < len(HEADER):
+            continue
+
+        # 防止有空表格还记录在rows中，
+        # 遍历后面的空行，造成插入在空行后
+        if not is_normal_row(row):
+            # 此时r值为该插入行的上一行数
+            # 如果没遇到非正常行，遍历后r值也为
+            # 正常插入行的上一行
+            # openpyxl中起始索引为1
+            break
+
         row_datetime = get_datetime(row)
         if not row_datetime:
             continue
@@ -245,19 +278,19 @@ def get_edited_and_row_start(excel_file, guard_datetime):
     # 如果没有昨天的行，有2种情况：
     # 1. 新建的的sheet
     # 2. 确实没有昨天的条目
-    # print('row_of_yesterday_start：', row_of_yesterday_start, '最后行号：', r + 2)
+    # print('row_of_yesterday_start：', row_of_yesterday_start, '最后行号：', r + 1)
     if 0 == row_of_yesterday_start:
         if len(HEADER) == sheet.max_row:
             row_start = len(HEADER) + 1
         else:
-            row_start = r + 2
+            row_start = r + 1
     else:
         row_start = row_of_yesterday_start + edited
 
     return (edited, row_start)
 
 
-def add_entry(sheet, datetime_, row, default_lane='7', pics_index=''):
+def add_entry(sheet, datetime_, row, default_lane=7, pics_index=''):
     '''向sheet中添加一行数据
     @datetime_：datetime.datetime对象
     @row：需插入的行
@@ -302,7 +335,7 @@ def add_entry(sheet, datetime_, row, default_lane='7', pics_index=''):
     return sheet
 
 
-def add_entries(sheet, car_datetimes, row_start, default_lane='7', edited=0):
+def add_entries(sheet, car_datetimes, row_start, default_lane=7, edited=0):
     '''
 
     添加完成后，删除后面所有行
@@ -347,7 +380,7 @@ def add_entries(sheet, car_datetimes, row_start, default_lane='7', edited=0):
     clear_rows_from(sheet, row_start)
 
 
-def add_entries_for_sheets(sheets, car_datetimes, row_start, default_lane='7',
+def add_entries_for_sheets(sheets, car_datetimes, row_start, default_lane=7,
                            edited=0, not_edited=0):
     '''为当月和前一月表单中添加数据
     参数与add_entries相同不过row_start为第一个表单中开始插入的行
@@ -360,13 +393,13 @@ def add_entries_for_sheets(sheets, car_datetimes, row_start, default_lane='7',
         car_datetimes1 = car_datetimes[0:not_edited]
         car_datetimes2 = car_datetimes[not_edited:]
         add_entries(sheet1, car_datetimes1, row_start,
-                    default_lane='7', edited=edited)
+                    default_lane=7, edited=edited)
         add_entries(sheet2, car_datetimes2, len(HEADER) + 1,
-                    default_lane='7', edited=0)
+                    default_lane=7, edited=0)
     # 否则
     else:
         add_entries(sheet2, car_datetimes, row_start,
-                    default_lane='7', edited=edited)
+                    default_lane=7, edited=edited)
 
 
 def clear_row(sheet, row):
@@ -388,7 +421,7 @@ def clear_rows_from(sheet, row):
 # 此模块总函数
 #
 
-def main(excel_file, car_datetimes, row_start, default_lane='7',
+def main(excel_file, car_datetimes, row_start, default_lane=7,
          edited=0, not_edited=0):
     '''
     @excel_file：需操作的Excel文件

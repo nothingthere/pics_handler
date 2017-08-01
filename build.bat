@@ -10,7 +10,7 @@ pyinstaller --noconfirm ^
             --add-data="folder.png;." ^
             --add-data="excel.png;." ^
             -i banana.ico ^
-            --name="pics_handler0.3.3" ^
+            --name="pics_handler0.3.3.1" ^
             pics_handler.py
 
 

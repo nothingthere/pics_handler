@@ -107,7 +107,7 @@ def get_not_edited(car_datetimes):
     for datetime_ in car_datetimes:
         car_date = public.datetime2date(datetime_)
 
-        if 1 == (current_date - car_date).days:
+        if (current_date - car_date).days == 1:
             not_edited += 1
 
     return not_edited

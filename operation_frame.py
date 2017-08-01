@@ -35,7 +35,7 @@ class Frame(tk.Frame):
 
         # 测试用
         # self.src_folder.set(
-        #     '/home/claudio/Desktop/Python/pics-handler/data_test/pics_new')
+        #     '/home/claudio/Desktop/Python/pics-handler/data_test/pics')
         # self.dst_folder.set(
         #     '/home/claudio/Desktop/Python/pics-handler/data_test/pics_new')
         # self.excel_file.set(
