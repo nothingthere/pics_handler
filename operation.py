@@ -13,8 +13,8 @@ import os.path
 import public
 import re
 import rename
-import tkinter.messagebox as messagebox
 import validate
+from tkinter import messagebox
 
 # 元数据中照片创建时间格式固定。
 # 参考地址：https://www.media.mit.edu/pia/Research/deepview/exif.html
@@ -74,8 +74,7 @@ def extract_from_images(image_files):
             pair[1] = datetime.datetime.strptime(
                 pure_file_name, '%Y-%m-%d-%H-%M-%S')
 
-        pair = tuple(pair)
-        files2datetime.append(pair)
+        files2datetime.append(tuple(pair))
 
     files2datetime.sort(key=lambda pair: pair[1])
 
@@ -192,6 +191,7 @@ def main(default_lane=7, image_files={},
     #
     # 操作excel文件
     #
+
     update_progress(root, progress_str, '正在写入Excel文件....')
 
     result = excel.main(excel_file, car_datetimes, row_start,

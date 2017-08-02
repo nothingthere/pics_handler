@@ -11,6 +11,6 @@ pyinstaller --noconfirm ^
             --add-data="excel.png;." ^
             -i banana.ico ^
             --name="pics_handler0.3.3.1" ^
-            pics_handler.py
+            root.py
 
 

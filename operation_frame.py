@@ -9,6 +9,7 @@
 
 
 import operation
+import restore
 import tkinter as tk
 import tkinter.filedialog as filedialog
 import tkinter.messagebox as messeagebox
@@ -64,6 +65,11 @@ class Frame(tk.Frame):
             self.excel_file_button_widget,
             self.submit_button_widget,
         ]
+
+        # 加载上次配置
+        restore.load(self.settings_frame.default_lane,
+                     self.src_folder, self.dst_folder,
+                     self.excel_file)
 
     #
     # 添加组件
@@ -256,6 +262,16 @@ class Frame(tk.Frame):
         src_folder = infos.get('src_folder')
         dst_folder = infos.get('dst_folder')
         excel_file = infos.get('excel_file')
+
+        #
+        # 为退出程序添加事件，存储配置
+        #
+        def on_closing():
+            restore.dump(default_lane, src_folder,
+                         dst_folder, excel_file)
+            self.master.destroy()
+
+        self.master.protocol('WM_DELETE_WINDOW', on_closing)
 
         #
         # 执行操作

@@ -23,7 +23,7 @@ class Frame(tk.LabelFrame):
         self.edited_widget = None
 
         self.default_lane = tk.StringVar()
-        self.default_lane.set(7)
+        self.default_lane.set('7')
         self.default_lane_widget = None
 
         # self.add_edited()

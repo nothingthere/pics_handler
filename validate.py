@@ -12,8 +12,7 @@ import operation
 import os
 import os.path
 import public
-import shutil
-import tkinter.messagebox as messagebox
+from tkinter import messagebox
 
 
 def show_error(message, widget=None):
@@ -133,7 +132,6 @@ def dst_folder(tk_str, src_folder, focus):
             show_error('{}：可能被另一个程序占用，清空失败'.format(folder_path))
             return False
 
-    # return False
     return folder_path
 
 

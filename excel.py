@@ -59,10 +59,6 @@ TIME_REGEX = re.compile(
 COL_DATE = 2
 COL_TIME = 3
 
-CELL_STYLE = NamedStyle(name="cell_style")
-CELL_STYLE.alignment = Alignment(horizontal='center')
-CELL_STYLE.font = Font(size=12, name='DejaVu Sans')
-
 
 def _load_book(filename):
     '仅做测试用'
@@ -108,17 +104,17 @@ def create_sheet(book):
 
     sheet = book.create_sheet(name)
 
+    headers = HEADER['headers']
     # 添加头信息
 
     for row in [1, 2]:
         sheet.merge_cells(
             start_row=row, end_row=row,
-            start_column=1, end_column=len(HEADER['headers']) - 1)
+            start_column=1, end_column=len(headers) - 1)
 
     sheet.cell(row=1, column=1, value=HEADER['title'])
     sheet.cell(row=2, column=1, value=HEADER['company'])
 
-    headers = HEADER['headers']
     for i, h in enumerate(headers):
         sheet.cell(row=3, column=i + 1, value=headers[i])
 
@@ -260,10 +256,7 @@ def get_edited_and_row_start(excel_file, guard_datetime):
         if not row_datetime:
             continue
 
-        row_date = datetime.datetime(
-            year=row_datetime.year,
-            month=row_datetime.month,
-            day=row_datetime.day)
+        row_date = public.datetime2date(row_datetime)
 
         date_delta = date_current - row_date
         if 1 == date_delta.days:
@@ -352,8 +345,8 @@ def add_entries(sheet, car_datetimes, row_start, default_lane=7, edited=0):
     index = 0
 
     for datetime_ in car_datetimes:
-        date_car = datetime.datetime(
-            datetime_.year, datetime_.month, datetime_.day)
+        date_car = public.datetime2date(datetime_)
+
         days = (date_current - date_car).days
 
         if 1 == days:
@@ -393,13 +386,13 @@ def add_entries_for_sheets(sheets, car_datetimes, row_start, default_lane=7,
         car_datetimes1 = car_datetimes[0:not_edited]
         car_datetimes2 = car_datetimes[not_edited:]
         add_entries(sheet1, car_datetimes1, row_start,
-                    default_lane=7, edited=edited)
+                    default_lane=default_lane, edited=edited)
         add_entries(sheet2, car_datetimes2, len(HEADER) + 1,
-                    default_lane=7, edited=0)
+                    default_lane=default_lane, edited=0)
     # 否则
     else:
         add_entries(sheet2, car_datetimes, row_start,
-                    default_lane=7, edited=edited)
+                    default_lane=default_lane, edited=edited)
 
 
 def clear_row(sheet, row):
@@ -410,8 +403,7 @@ def clear_row(sheet, row):
 
 def clear_rows_from(sheet, row):
     for r in itertools.count(row):
-        first_cell = sheet.cell(row=r, column=1)
-        if not first_cell.value:
+        if not sheet.cell(row=r, column=1).value:
             break
         else:
             clear_row(sheet, r)

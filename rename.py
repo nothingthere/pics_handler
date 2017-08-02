@@ -24,17 +24,15 @@ def move_files(paths_from, paths_to, func=shutil.copy2):
     '''
     理由多线程复制/或重命名文件
     默认为复制文件，及使用shutil.copy2
-    可使用shutil.move实现重命名
+    可使用os.rename实现重命名
     '''
-    def foo(x, y):
-        func(x, y)
-        print(os.path.basename(x), ' --> ', os.path.basename(y))
+    # def foo(x, y):
+    #     func(x, y)
+    #     print(os.path.basename(x), ' --> ', os.path.basename(y))
 
     # 传递max_workers参数是为了兼容python3.4，以兼容XP
     with cf.ThreadPoolExecutor(max_workers=MAX_WORKERS) as e:
         e.map(func, paths_from, paths_to)
-
-
 
 
 def generate_path_pairs(file2datetimes, dst_folder, edited=0, inplace=True):
@@ -120,7 +118,7 @@ def main(file2datetimes, dst_folder, edited=0, inplace=True):
     4. 如果duplicated_paths中有路径，则表明为当前文件夹中修改，
        1. 先将所有所有旧路径重命名为"新路径.new"即old_path1 -> new_path1.new
        2. 再将所有“新路径.new” 重命名为“新路径”，即new_path1.new -> new_path
-          按照shutil.move的机制，会覆盖之前duplicated_paths中的“新路径”
+          按照os.rename的机制，会覆盖之前duplicated_paths中的“新路径”
        3. 如果是添加照片组，则文件夹中的照片会变得“干净”。如果删减照片组，也会
          变得“干净”。
 
@@ -143,13 +141,13 @@ def main(file2datetimes, dst_folder, edited=0, inplace=True):
             for path in new_paths:
                 new_paths2.append(path + flag)
 
-            move_files(old_paths, new_paths2, shutil.move)
-            move_files(new_paths2, new_paths, shutil.move)
+            move_files(old_paths, new_paths2, os.rename)
+            move_files(new_paths2, new_paths, os.rename)
         # 5
         else:
             if inplace:
                 # print('\t重命名')
-                move_files(old_paths, new_paths, shutil.move)
+                move_files(old_paths, new_paths, os.rename)
             else:
                 # print('\t复制')
                 move_files(old_paths, new_paths, shutil.copy2)
