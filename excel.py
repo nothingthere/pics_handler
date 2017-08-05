@@ -15,7 +15,6 @@ import openpyxl as xls
 import public
 import re
 from collections import namedtuple
-from openpyxl.styles import Alignment, Font, NamedStyle
 
 #
 # API函数

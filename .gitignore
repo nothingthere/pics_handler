@@ -8,6 +8,6 @@ test_pics*/**
 **/*.xls
 **/*.xlsx
 data_test/**
-
+configuration.json
 
 
